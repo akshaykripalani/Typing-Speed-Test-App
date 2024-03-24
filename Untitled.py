@@ -1,15 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 #Standard Libraries
 import time
 import random
 import os
+import numpy as np
 import pandas as pd
-import matplotlib as plt
+import matplotlib.pyplot as plt
 thisdir = os.path.dirname(os.path.abspath(__file__))
 ''' The program first uses the PickTest() function to randomly pick one of the available paragraphs pre-defined in a text file. These paragraphs can be added on the fly.
 The PrepareTest() function finds the Normalization Factor - Since the length of words is not same for all words, this allows us to find the average length per word to have a more accurate reading of typing speed
@@ -88,25 +83,46 @@ def saveResults(score,wpm):
         print("New user created!")
     leadf = leadf.sort_values('Highscore', ascending = False)
     leadf.to_csv(csvfilename,index=False)
-    #if username in leadf[Name]:
 
-
-
-SelectedTest = PickTest()
-#Convert selected test to a list of words so we can compare user input
-TestList = SelectedTest.split(" ")
-NormalizationFactor = PrepareTest(TestList)
-AnswerList, TimeTaken = TakeTest()
-WPM, Accuracy, ErrorPercent = AssessTest(AnswerList,TimeTaken)
-userScore = round(((1-(ErrorPercent/100)) * WPM))
-print("Your speed in words per minute is: ", WPM)
-print("Accuracy: ",Accuracy,"%")
-print("Error Percent: ", ErrorPercent,"%")
-print("Score: ", userScore)
-
-print()
-userChoice = input("Do you want to save results? Y/N: ")
+def viewGraph(userName):
+    csvfilename = os.path.join(thisdir,'Leaderboards.csv')
+    df = pd.read_csv(csvfilename)
+    if (userName in df["Name"].values):
+        idx = df.index[df["Name"]==userName][0]
+        ypoints = eval(df.at[idx,'History'])
+        xpoints = range(1, len(ypoints)+1)
+        plt.plot(xpoints, ypoints)
+        plt.xticks(xpoints)
+        plt.show()
+    else:
+        print("Username does not exist!")
+    
+userChoice = input("Do you want to give test? Y/N ")
 if userChoice.lower() == 'y':
-    saveResults(userScore,WPM)
+    SelectedTest = PickTest()
+    #Convert selected test to a list of words so we can compare user input
+    TestList = SelectedTest.split(" ")
+    NormalizationFactor = PrepareTest(TestList)
+    AnswerList, TimeTaken = TakeTest()
+    WPM, Accuracy, ErrorPercent = AssessTest(AnswerList,TimeTaken)
+    userScore = round(((1-(ErrorPercent/100)) * WPM))
+    print("Your speed in words per minute is: ", WPM)
+    print("Accuracy: ",Accuracy,"%")
+    print("Error Percent: ", ErrorPercent,"%")
+    print("Score: ", userScore)
+    print()
+    userChoice = input("Do you want to save results? Y/N: ")
+    if userChoice.lower() == 'y':
+        saveResults(userScore,WPM)
+    else:
+        print("Not saving results")
 else:
-    print("Not saving results")
+    print("Not Attempting Test")
+
+userChoice = input("Do you want to view graph of history? Y/N ")
+if  userChoice.lower() == 'y':
+    name = input("Enter your username: ")
+    viewGraph(name)
+    del name
+else:
+    print("Not showing graph")
