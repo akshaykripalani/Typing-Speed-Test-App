@@ -7,15 +7,18 @@
 #Standard Libraries
 import time
 import random
+import os
 import pandas as pd
 import matplotlib as plt
+thisdir = os.path.dirname(os.path.abspath(__file__))
 ''' The program first uses the PickTest() function to randomly pick one of the available paragraphs pre-defined in a text file. These paragraphs can be added on the fly.
 The PrepareTest() function finds the Normalization Factor - Since the length of words is not same for all words, this allows us to find the average length per word to have a more accurate reading of typing speed
 The TakeTest() function starts a timer and then makes the user input the paragraph that they are supposed to. The timing is marked and the resultant answer and time taken are passes to AssessTest()
 The AssessTest() function is the main function that analyses different parameters that the user needs measured.'''
 def PickTest():
-    #Modular Testing. Having a single file with all possible pre-defined tests allows us to add tests on the fly without hardcoding.
-    AllTests = open('Samples.txt','r')
+    #Modular Testing. Having a single file Twith all possible pre-defined tests allows us to add tests on the fly without hardcoding.
+    textfilename =  os.path.join(thisdir,"Samples.txt")
+    AllTests = open(textfilename,'r')
 
     #Convert all given tests in files as a list of strings
     PossibleTests = AllTests.readlines()
@@ -59,12 +62,35 @@ def AssessTest(AnswerList,TimeTaken):
     for i in range(checkLimit):
         if (AnswerList[i] == TestList[i]):
             CorrectWords += 1
-            CorrectChars += len(AnswerList[i]) + 1 #+1 to account for additional space at the end of the word.
+            CorrectChars += (len(AnswerList[i]) + 1)
 
     WPM = round(((CorrectChars/NormalizationFactor)/TimeTaken)*60)
     Accuracy = round(CorrectWords/NumofTypedWords*100)
-    ErrorPercent = round(((abs(CorrectWords - len(TestList)))/len(TestList))*100,2)
+    ErrorPercent = round(((abs(CorrectWords - len(TestList)))/len(TestList))*100)
     return(WPM, Accuracy, ErrorPercent)
+
+def saveResults(score,wpm):
+    print("Saving Results...")
+    csvfilename =  os.path.join(thisdir,"Leaderboards.csv")
+    leadf = pd.read_csv(csvfilename)
+    username = input("Enter your username: ")
+    if (username in leadf['Name'].values):
+        idx = leadf.index[leadf['Name']==username][0]
+        newHistory = eval(leadf.at[idx,'History'])
+        newHistory.append(wpm)
+        leadf.at[idx,'History'] = newHistory
+        if(score > leadf.at[idx,'Highscore']):
+            leadf.at[idx,'Highscore'] = score
+        print("Score Updated!")
+    else:
+        newUser = {'Name':username, 'Highscore':score, 'History':[wpm]}
+        leadf = leadf._append(newUser,ignore_index = True)
+        print("New user created!")
+    leadf = leadf.sort_values('Highscore', ascending = False)
+    leadf.to_csv(csvfilename,index=False)
+    #if username in leadf[Name]:
+
+
 
 SelectedTest = PickTest()
 #Convert selected test to a list of words so we can compare user input
@@ -72,8 +98,15 @@ TestList = SelectedTest.split(" ")
 NormalizationFactor = PrepareTest(TestList)
 AnswerList, TimeTaken = TakeTest()
 WPM, Accuracy, ErrorPercent = AssessTest(AnswerList,TimeTaken)
-userScore = ((1-(ErrorPercent/100)) * WPM)
+userScore = round(((1-(ErrorPercent/100)) * WPM))
 print("Your speed in words per minute is: ", WPM)
 print("Accuracy: ",Accuracy,"%")
 print("Error Percent: ", ErrorPercent,"%")
 print("Score: ", userScore)
+
+print()
+userChoice = input("Do you want to save results? Y/N: ")
+if userChoice.lower() == 'y':
+    saveResults(userScore,WPM)
+else:
+    print("Not saving results")
